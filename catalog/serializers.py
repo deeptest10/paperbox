@@ -19,9 +19,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
         for category in categories:
             if category.name.casefold() == value.casefold():
-                raise serializers.ValidationError(
-                    "Категорія з такою назвою вже існує."
-                )
+                raise serializers.ValidationError("Категорія з такою назвою вже існує.")
 
         return value
 
@@ -42,9 +40,7 @@ class BrandSerializer(serializers.ModelSerializer):
 
         for brand in brands:
             if brand.name.casefold() == value.casefold():
-                raise serializers.ValidationError(
-                    "Бренд з такою назвою вже існує."
-                )
+                raise serializers.ValidationError("Бренд з такою назвою вже існує.")
 
         return value
 
@@ -71,3 +67,14 @@ class ProductSerializer(serializers.ModelSerializer):
             "brand_id",
         ]
         read_only_fields = ["id"]
+
+
+class ProductQuerySerializer(serializers.Serializer):
+    search = serializers.CharField(required=False, allow_blank=True)
+    category = serializers.IntegerField(required=False, min_value=1)
+    brand = serializers.IntegerField(required=False, min_value=1)
+    ordering = serializers.ChoiceField(
+        choices=["price", "-price", "name", "-name"],
+        default="name",
+    )
+    page = serializers.IntegerField(min_value=1, default=1)
