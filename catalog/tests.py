@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
@@ -5,6 +6,13 @@ from .models import Brand, Category, Product
 
 
 class CatalogAPITests(APITestCase):
+    def authenticate_admin(self):
+        admin = get_user_model().objects.create_user(
+            username="test_admin",
+            is_staff=True,
+        )
+        self.client.force_authenticate(user=admin)
+
     def setUp(self):
         self.category = Category.objects.create(name="Ручки")
         self.brand = Brand.objects.create(name="BIC")
@@ -18,6 +26,7 @@ class CatalogAPITests(APITestCase):
         self.product_url = reverse("product-detail", args=[self.product.pk])
 
     def test_category_crud(self):
+        self.authenticate_admin()
         # Створення, список, перегляд, редагування та видалення.
         url = reverse("category-list")
         response = self.client.post(url, {"name": "Зошити"}, format="json")
@@ -41,6 +50,7 @@ class CatalogAPITests(APITestCase):
         self.assertEqual(set(response.data["error"]), {"message", "details"})
 
     def test_brand_crud(self):
+        self.authenticate_admin()
         url = reverse("brand-list")
         response = self.client.post(url, {"name": "Pilot"}, format="json")
         self.assertEqual(response.status_code, 201)
@@ -61,6 +71,7 @@ class CatalogAPITests(APITestCase):
         self.assertEqual(self.client.get(detail).status_code, 404)
 
     def test_product_crud(self):
+        self.authenticate_admin()
         data = {
             "name": "Чорна ручка",
             "price": "30.00",
@@ -90,6 +101,7 @@ class CatalogAPITests(APITestCase):
         self.assertEqual(self.client.get(detail).status_code, 404)
 
     def test_invalid_names(self):
+        self.authenticate_admin()
         cases = [("category-list", Category, "РУЧКИ"), ("brand-list", Brand, "bic")]
         for route, model, duplicate in cases:
             for name in ["", duplicate]:
@@ -105,7 +117,8 @@ class CatalogAPITests(APITestCase):
                     self.assertEqual(model.objects.count(), 1)
 
     def test_invalid_product_data(self):
-        # У тестовій базі є лише одна категорія та один бренд.
+        self.authenticate_admin()
+        # У тестовій базі є лише одна категорія та один бренд
         cases = [
             ("price", "-1.00"),
             ("category_id", self.category.pk + 1),
@@ -124,6 +137,7 @@ class CatalogAPITests(APITestCase):
                 self.assertEqual(self.product.brand_id, self.brand.pk)
 
     def test_protected_deletion(self):
+        self.authenticate_admin()
         for route, obj in [
             ("category-detail", self.category),
             ("brand-detail", self.brand),

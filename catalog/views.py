@@ -2,7 +2,7 @@ from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny
+from accounts.permissions import IsAdminOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -17,8 +17,7 @@ from .serializers import (
 
 
 class CategoryListView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
 
     def get(self, request):
         categories = Category.objects.all()
@@ -33,8 +32,8 @@ class CategoryListView(APIView):
 
 
 class CategoryDetailView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
+
 
     def get(self, request, pk):
         category = get_object_or_404(Category, pk=pk)
@@ -71,8 +70,8 @@ class CategoryDetailView(APIView):
 
 
 class BrandListView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
+
 
     def get(self, request):
         brands = Brand.objects.all()
@@ -87,8 +86,8 @@ class BrandListView(APIView):
 
 
 class BrandDetailView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
+
 
     def get(self, request, pk):
         brand = get_object_or_404(Brand, pk=pk)
@@ -125,8 +124,8 @@ class BrandDetailView(APIView):
 
 
 class ProductListView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
+
 
     def get(self, request):
         query_serializer = ProductQuerySerializer(data=request.query_params)
@@ -168,8 +167,8 @@ class ProductListView(APIView):
 
 
 class ProductDetailView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
+
 
     def get(self, request, pk):
         product = get_object_or_404(Product, pk=pk)
