@@ -43,9 +43,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
         try:
             validate_password(attrs["password"], user=user)
         except DjangoValidationError as error:
-            raise serializers.ValidationError(
-                {"password": error.messages}
-            ) from error
+            raise serializers.ValidationError({"password": error.messages}) from error
 
         return attrs
 

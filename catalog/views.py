@@ -2,9 +2,10 @@ from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from accounts.permissions import IsAdminOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from accounts.permissions import IsAdminOrReadOnly
 
 from .models import Brand, Category, Product
 from .pagination import ProductPagination
@@ -33,7 +34,6 @@ class CategoryListView(APIView):
 
 class CategoryDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
-
 
     def get(self, request, pk):
         category = get_object_or_404(Category, pk=pk)
@@ -72,7 +72,6 @@ class CategoryDetailView(APIView):
 class BrandListView(APIView):
     permission_classes = [IsAdminOrReadOnly]
 
-
     def get(self, request):
         brands = Brand.objects.all()
         serializer = BrandSerializer(brands, many=True)
@@ -87,7 +86,6 @@ class BrandListView(APIView):
 
 class BrandDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
-
 
     def get(self, request, pk):
         brand = get_object_or_404(Brand, pk=pk)
@@ -125,7 +123,6 @@ class BrandDetailView(APIView):
 
 class ProductListView(APIView):
     permission_classes = [IsAdminOrReadOnly]
-
 
     def get(self, request):
         query_serializer = ProductQuerySerializer(data=request.query_params)
@@ -168,7 +165,6 @@ class ProductListView(APIView):
 
 class ProductDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
-
 
     def get(self, request, pk):
         product = get_object_or_404(Product, pk=pk)
