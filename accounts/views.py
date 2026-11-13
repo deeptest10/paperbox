@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -10,6 +11,11 @@ class RegistrationView(APIView):
     permission_classes = [AllowAny]
     serializer_class = RegistrationSerializer
 
+    @extend_schema(
+        request=RegistrationSerializer,
+        responses={201: ProfileSerializer},
+        auth=[],
+    )
     def post(self, request):
         serializer = RegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

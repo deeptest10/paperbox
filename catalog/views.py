@@ -65,6 +65,7 @@ class CategoryListView(APIView):
 
     @extend_schema(
         operation_id="categories_list",
+        auth=[],
         summary="Список категорій",
         responses=CategorySerializer(many=True),
     )
@@ -84,6 +85,7 @@ class CategoryDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
     serializer_class = CategorySerializer
 
+    @extend_schema(auth=[])
     def get(self, request, pk):
         category = get_object_or_404(Category, pk=pk)
         serializer = CategorySerializer(category)
@@ -124,6 +126,7 @@ class BrandListView(APIView):
 
     @extend_schema(
         operation_id="brands_list",
+        auth=[],
         summary="Список брендів",
         responses=BrandSerializer(many=True),
     )
@@ -143,6 +146,7 @@ class BrandDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
     serializer_class = BrandSerializer
 
+    @extend_schema(auth=[])
     def get(self, request, pk):
         brand = get_object_or_404(Brand, pk=pk)
         serializer = BrandSerializer(brand)
@@ -183,6 +187,7 @@ class ProductListView(APIView):
 
     @extend_schema(
         operation_id="products_list",
+        auth=[],
         summary="Список товарів",
         description=(
             "Публічний перегляд каталогу. "
@@ -278,6 +283,7 @@ class ProductDetailView(APIView):
 
     @extend_schema(
         operation_id="products_retrieve",
+        auth=[],
         summary="Переглянути товар",
         description="Доступно без автентифікації.",
         responses={
