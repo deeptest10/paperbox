@@ -8,6 +8,7 @@ from .serializers import ProfileSerializer, RegistrationSerializer
 
 class RegistrationView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = RegistrationSerializer
 
     def post(self, request):
         serializer = RegistrationSerializer(data=request.data)
@@ -18,6 +19,7 @@ class RegistrationView(APIView):
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = ProfileSerializer
 
     def get(self, request):
         serializer = ProfileSerializer(request.user)

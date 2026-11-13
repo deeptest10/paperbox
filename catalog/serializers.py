@@ -78,3 +78,19 @@ class ProductQuerySerializer(serializers.Serializer):
         default="name",
     )
     page = serializers.IntegerField(min_value=1, default=1)
+
+
+class ProductListResponseSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = ProductSerializer(many=True)
+
+
+class ErrorDetailSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    details = serializers.JSONField()
+
+
+class ErrorResponseSerializer(serializers.Serializer):
+    error = ErrorDetailSerializer()

@@ -1,19 +1,22 @@
+import os
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+load_dotenv(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-csz#0g_+u88cb1nzqg9v5c@7!6jmj+(d3b(%12ha1a7vx2!otp"
+SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
 
 
 # Application definition
@@ -29,6 +32,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "catalog.apps.CatalogConfig",
     "accounts.apps.AccountsConfig",
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -44,8 +48,9 @@ MIDDLEWARE = [
 
 # Allow local frontend development servers without allowing arbitrary origins.
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5500",
-    "http://127.0.0.1:5500",
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -127,8 +132,43 @@ MAILERS = {
 
 
 REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "catalog.exceptions.api_exception_handler",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
+}
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "PaperBox API",
+    "DESCRIPTION": "API каталогу канцтоварів та автентифікації користувачів.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+}
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "{asctime} {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "loggers": {
+        "catalog": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
 }
