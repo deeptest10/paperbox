@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Test reports
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
