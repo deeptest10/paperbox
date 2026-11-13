@@ -1,5 +1,8 @@
+import logging
+
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -12,14 +15,60 @@ from .pagination import ProductPagination
 from .serializers import (
     BrandSerializer,
     CategorySerializer,
+    ErrorResponseSerializer,
+    ProductListResponseSerializer,
     ProductQuerySerializer,
     ProductSerializer,
 )
 
+logger = logging.getLogger(__name__)
+ERROR_RESPONSES = {
+    400: OpenApiResponse(
+        response=ErrorResponseSerializer,
+        description="Некоректні дані або параметри запиту.",
+        examples=[
+            OpenApiExample(
+                "Некоректна ціна",
+                value={
+                    "error": {
+                        "message": "Некоректний запит.",
+                        "details": {
+                            "price": [
+                                "Ensure this value is greater than or equal to 0.00."
+                            ]
+                        },
+                    }
+                },
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+    ),
+    401: OpenApiResponse(
+        response=ErrorResponseSerializer,
+        description="Відсутній, недійсний або прострочений JWT-токен.",
+    ),
+    403: OpenApiResponse(
+        response=ErrorResponseSerializer,
+        description="Змінювати каталог може лише адміністратор.",
+    ),
+    404: OpenApiResponse(
+        response=ErrorResponseSerializer,
+        description="Товар або сторінку не знайдено.",
+    ),
+}
+
 
 class CategoryListView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = CategorySerializer
 
+    @extend_schema(
+        operation_id="categories_list",
+        auth=[],
+        summary="Список категорій",
+        responses=CategorySerializer(many=True),
+    )
     def get(self, request):
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
@@ -34,7 +83,9 @@ class CategoryListView(APIView):
 
 class CategoryDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = CategorySerializer
 
+    @extend_schema(auth=[])
     def get(self, request, pk):
         category = get_object_or_404(Category, pk=pk)
         serializer = CategorySerializer(category)
@@ -71,7 +122,14 @@ class CategoryDetailView(APIView):
 
 class BrandListView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = BrandSerializer
 
+    @extend_schema(
+        operation_id="brands_list",
+        auth=[],
+        summary="Список брендів",
+        responses=BrandSerializer(many=True),
+    )
     def get(self, request):
         brands = Brand.objects.all()
         serializer = BrandSerializer(brands, many=True)
@@ -86,7 +144,9 @@ class BrandListView(APIView):
 
 class BrandDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = BrandSerializer
 
+    @extend_schema(auth=[])
     def get(self, request, pk):
         brand = get_object_or_404(Brand, pk=pk)
         serializer = BrandSerializer(brand)
@@ -123,7 +183,30 @@ class BrandDetailView(APIView):
 
 class ProductListView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = ProductSerializer
 
+    @extend_schema(
+        operation_id="products_list",
+        auth=[],
+        summary="Список товарів",
+        description=(
+            "Публічний перегляд каталогу. "
+            "Пошук за назвою без урахування регістру, "
+            "фільтрація за категорією та брендом. "
+            "Сортування за назвою або ціною. "
+            "На сторінці до 20 товарів."
+        ),
+        parameters=[ProductQuerySerializer],
+        responses={
+            200: ProductListResponseSerializer,
+            400: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description="Некоректні параметри пошуку, фільтрації або пагінації.",
+            ),
+            401: ERROR_RESPONSES[401],
+            404: ERROR_RESPONSES[404],
+        },
+    )
     def get(self, request):
         query_serializer = ProductQuerySerializer(data=request.query_params)
         query_serializer.is_valid(raise_exception=True)
@@ -156,21 +239,84 @@ class ProductListView(APIView):
 
         return paginator.get_paginated_response(serializer.data)
 
+    @extend_schema(
+        operation_id="products_create",
+        summary="Створити товар",
+        description="Потрібен JWT access-токен адміністратора (is_staff=True).",
+        request=ProductSerializer,
+        responses={
+            201: ProductSerializer,
+            400: ERROR_RESPONSES[400],
+            401: ERROR_RESPONSES[401],
+            403: ERROR_RESPONSES[403],
+        },
+        examples=[
+            OpenApiExample(
+                "Новий товар",
+                value={
+                    "name": "Синя ручка",
+                    "description": "Кулькова ручка із синім чорнилом.",
+                    "price": "30.00",
+                    "category_id": 1,
+                    "brand_id": 1,
+                },
+                description="Замініть ID категорії та бренду на наявні у вашій базі.",
+                request_only=True,
+            ),
+        ],
+    )
     def post(self, request):
         serializer = ProductSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        product = serializer.save()
+        logger.info(
+            "Product created: product_id=%s user_id=%s",
+            product.pk,
+            request.user.pk,
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class ProductDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = ProductSerializer
 
+    @extend_schema(
+        operation_id="products_retrieve",
+        auth=[],
+        summary="Переглянути товар",
+        description="Доступно без автентифікації.",
+        responses={
+            200: ProductSerializer,
+            401: ERROR_RESPONSES[401],
+            404: ERROR_RESPONSES[404],
+        },
+    )
     def get(self, request, pk):
         product = get_object_or_404(Product, pk=pk)
         serializer = ProductSerializer(product)
         return Response(serializer.data)
 
+    @extend_schema(
+        operation_id="products_partial_update",
+        summary="Редагувати товар",
+        description=(
+            "Потрібен JWT access-токен адміністратора (is_staff=True). "
+            "Передавайте лише поля, які потрібно змінити."
+        ),
+        request=ProductSerializer,
+        responses={
+            200: ProductSerializer,
+            **ERROR_RESPONSES,
+        },
+        examples=[
+            OpenApiExample(
+                "Зміна ціни",
+                value={"price": "35.00"},
+                request_only=True,
+            ),
+        ],
+    )
     def patch(self, request, pk):
         product = get_object_or_404(Product, pk=pk)
         serializer = ProductSerializer(
@@ -180,9 +326,31 @@ class ProductDetailView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        logger.info(
+            "Product updated: product_id=%s user_id=%s",
+            product.pk,
+            request.user.pk,
+        )
         return Response(serializer.data)
 
+    @extend_schema(
+        operation_id="products_destroy",
+        summary="Видалити товар",
+        description="Потрібен JWT access-токен адміністратора (is_staff=True).",
+        responses={
+            204: OpenApiResponse(description="Товар видалено. Тіло відповіді порожнє."),
+            401: ERROR_RESPONSES[401],
+            403: ERROR_RESPONSES[403],
+            404: ERROR_RESPONSES[404],
+        },
+    )
     def delete(self, request, pk):
         product = get_object_or_404(Product, pk=pk)
+        product_id = product.pk
         product.delete()
+        logger.info(
+            "Product deleted: product_id=%s user_id=%s",
+            product_id,
+            request.user.pk,
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
